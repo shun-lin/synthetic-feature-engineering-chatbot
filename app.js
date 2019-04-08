@@ -94,6 +94,8 @@ app.get('/webhook', (req, res) => {
   }
 });
 
+let lookup_keyword = "";
+
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
   let response = {
@@ -140,78 +142,117 @@ function handleMessage(sender_psid, received_message) {
       message_catched  = true;
     } 
     
+    // need to condense all those if statement into a for loop
     if (lower_case.includes("bitcoin")) {
       response.text = `Do you want some news about bitcoin?`;
+      lookup_keyword = "bitcoin";
+      message_catched = true;
+    }
+    
+    if (lower_case.includes("cryptocurrency")) {
+      response.text = `Do you want some news about general cryptocurrency?`;
+      lookup_keyword = "cryptocurrency";
+      message_catched = true;
+    }
+    
+    if (lower_case.includes("blockchain")) {
+      response.text = `Do you want some news about blockchain?`;
+      lookup_keyword = "blockchain";
+      message_catched = true;
+    }
+    
+    if (lower_case.includes("ethereum")) {
+      response.text = `Do you want some news about Ethereum?`;
+      lookup_keyword = "ethereum";
+      message_catched = true;
+    }
+    
+    if (lower_case.includes("litecoin")) {
+      response.text = `Do you want some news about Litecoin?`;
+      lookup_keyword = "litecoin";
+      message_catched = true;
+    }
+    
+    // need to condense all those if statement into a for loop ENDS
+    
+    if (lower_case.includes("no")) {
+      response.text = `Okay, let me know what other cyptocurrency do you want news for?`;
+      lookup_keyword = "";
       message_catched = true;
     }
     
     if (lower_case.includes("yes")) {
-      message_catched = true;
-      // callSendAPI(sender_psid, "let me gather some bitcoin news for you!");
       
-      newsapi.v2.everything({
-        q: 'bitcoin',
-        from: '2019-04-06',
-        to: '2019-04-06',
-        language: 'en',
-        sortBy: 'popularity',
-        pageSize: '100',
-      }).then(response => {
-        message_catched = true;
-        let bitcoin_response = {
-          "text": response.articles[0].title
-        }
-        
-        let query_response = {
-          "attachment": {
-            "type": "template",
-            "payload": {
-              "template_type": "list",
-              "top_element_style": "compact",
-              "elements": []
+      message_catched = true;
+      
+      if (lookup_keyword === null || lookup_keyword.length === 0) {
+        response.text = `Please tell me a cyptocurrency to lookup first.`;
+      }
+      else {
+        newsapi.v2.everything({
+          q: lookup_keyword,
+          from: '2019-04-06',
+          to: '2019-04-06',
+          language: 'en',
+          sortBy: 'popularity',
+          pageSize: '100',
+        }).then(response => {
+          message_catched = true;
+          let bitcoin_response = {
+            "text": response.articles[0].title
+          }
+
+          let query_response = {
+            "attachment": {
+              "type": "template",
+              "payload": {
+                "template_type": "list",
+                "top_element_style": "compact",
+                "elements": []
+              }
             }
           }
-        }
-        
-        let bitcoin_article;
-        let title;
-        let subtitle;
-        let image_url;
-        let url;
-        let lst_element;
-        
-        var i;
-        for (i = 0; i < 4; i+=1) {
-          bitcoin_article = response.articles[i];
-          title = bitcoin_article.title;
-          image_url = bitcoin_article.urlToImage;
-          subtitle = bitcoin_article.description;
-          url = bitcoin_article.url;
-          
-          lst_element = {
-            "title": title,
-            "subtitle": subtitle,
-            "image_url": image_url,
-            "default_action": {
-              "type": "web_url",
-              "url": url,
-              "webview_height_ratio": "tall"
+
+          let bitcoin_article;
+          let title;
+          let subtitle;
+          let image_url;
+          let url;
+          let lst_element;
+
+          var i;
+          for (i = 0; i < 4; i+=1) {
+            bitcoin_article = response.articles[i];
+            title = bitcoin_article.title;
+            image_url = bitcoin_article.urlToImage;
+            subtitle = bitcoin_article.description;
+            url = bitcoin_article.url;
+
+            lst_element = {
+              "title": title,
+              "subtitle": subtitle,
+              "image_url": image_url,
+              "default_action": {
+                "type": "web_url",
+                "url": url,
+                "webview_height_ratio": "tall"
+              }
             }
+
+            query_response.attachment.payload.elements.push(lst_element);
+
+
           }
-          
-          query_response.attachment.payload.elements.push(lst_element);
-          
-          
-        }
-        console.log(query_response.attachment.payload.elements);
-        callSendAPI(sender_psid, query_response);
-        /*
-          {
-            status: "ok",
-            articles: [...]
-          }
-        */
-      });
+          console.log(query_response.attachment.payload.elements);
+          callSendAPI(sender_psid, query_response);
+          /*
+            {
+              status: "ok",
+              articles: [...]
+            }
+          */
+        });
+      }
 
       
     }
