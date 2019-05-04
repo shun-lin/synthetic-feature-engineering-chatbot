@@ -22,6 +22,16 @@ from segtok import tokenizer
 from collections import Counter
 import json
 
+# import to read URLs
+import requests # The requests library is an 
+# HTTP library for getting and posting content etc.
+import bs4 as bs # BeautifulSoup4 is a Python library 
+# for pulling data out of HTML and XML code.
+
+import re
+import string
+import operator
+
 # Using a basic RNN/LSTM for Language modeling
 class LanguageModel():
     def __init__(self, input_length, vocab_size, rnn_size, learning_rate=1e-4):

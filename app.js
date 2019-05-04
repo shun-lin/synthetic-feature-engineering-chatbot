@@ -1,13 +1,3 @@
-/*
- * Starter Project for Messenger Platform Quick Start Tutorial
- *
- * Remix this as the starting point for following the Messenger Platform
- * quick start tutorial.
- *
- * https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start/
- *
- */
-
 'use strict';
 
 // Imports dependencies and set up http server
@@ -16,6 +6,7 @@ const
   request = require('request'),
   express = require('express'),
   body_parser = require('body-parser'),
+  // najax to replace jQuery Ajax
   najax = require('najax'),
   app = express().use(body_parser.json()), // creates express http server
 
@@ -114,19 +105,17 @@ function handleMessage(sender_psid, received_message) {
   if (received_message.text) {    
     
     let message_catched = false;
+    let lower_case = received_message.text.toLowerCase().trim();
     
     // test if greeting through NLP
     const greeting = firstEntity(received_message.nlp, 'greetings');
     if (greeting && greeting.confidence > 0.8) {
       // Create greeting feedback
-      response.text = `hi! Welcome to Syntehtic Feature Engineering Team's Demo Bot`;
+      response.text = `hi! Welcome to Data-X Paradigm Team 2's Demo Bot`;
       message_catched  = true;
     }
     
-    let lower_case = received_message.text.toLowerCase();
-    // check if the message contains bitcoin
-    
-    if (lower_case.includes("info")) {
+    if (lower_case === "info") {
       // Create greeting feedback
       response.text = `This page is created for the demo chat bot for Data-X Paradigm Synthetic Features Engineering Team Spring 2019.`;
       message_catched  = true;
@@ -138,13 +127,13 @@ function handleMessage(sender_psid, received_message) {
       message_catched  = true;
     }
     
-    if (lower_case.includes("menu")) {
+    if (lower_case === "menu") {
       // Create greeting feedback
       response.text = `You can say something like 'bitcoin' and we will fetch some Bitcoin news for you!`;
       message_catched  = true;
     }
     
-    if (lower_case.includes("help")) {
+    if (lower_case === "help") {
       // Create greeting feedback
       response.text = `Our team has been notified, we will contact you about your problem shortly!`;
       message_catched  = true;
@@ -209,15 +198,33 @@ function handleMessage(sender_psid, received_message) {
     //testing python
     if (lower_case.includes("unusual score: ")) {
       
-      var headline_title = lower_case.slice(15);
-      console.error(headline_title);
+      var received_title = lower_case.slice(15).trim();
+      
+      var headline_title = received_title;
+      var headline_title_test = "";
+      
+      console.error("The title of the headline is: " + headline_title_test);
       
       najax({
             type: "POST",
             url: "http://127.0.0.1:5001/getScore",
             data: { mydata: headline_title},
             complete: function(retString) {
-              response.text = "returning: " + JSON.parse(retString).loss;
+              console.error(retString);
+              var score = parseFloat(JSON.parse(retString).loss).toFixed(2);
+              response.text = "The unusual score is  " + score.toString() + '. ';
+              
+              var analysis = "";
+              if (score < 7.00) {
+                analysis = " Our model thinks the headline is not unusual (not impactful). The article may not have any affect on cryptocurrency prices."
+              } else if (score < 15.00) {
+                analysis = " Our model thinks the headline is unusual (potentially impactful). The article may have an impact on future cryptocurrency prices. We recommend reading the article in detail!"
+              } else {
+                analysis = " Our model thinks that the unusual score is too high, which indicates that article is not related to cryptocurrency at all! If the headline does contain cyptocurrency then it should be highly impactful. "
+              }
+              
+              // add analysis to the score
+              response.text += analysis
               // Sends the response message
               callSendAPI(sender_psid, response);
             }
