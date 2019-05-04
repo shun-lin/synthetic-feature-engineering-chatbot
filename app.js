@@ -11,10 +11,12 @@
 'use strict';
 
 // Imports dependencies and set up http server
+
 const 
   request = require('request'),
   express = require('express'),
   body_parser = require('body-parser'),
+  najax = require('najax'),
   app = express().use(body_parser.json()), // creates express http server
 
   // news API
@@ -96,6 +98,12 @@ app.get('/webhook', (req, res) => {
 
 let lookup_keyword = "";
 
+function getDate() {
+  let date = new Date();
+  let today = date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate();
+  return today;
+}
+
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
   let response = {
@@ -124,7 +132,7 @@ function handleMessage(sender_psid, received_message) {
       message_catched  = true;
     }
     
-    if (lower_case.includes("test")) {
+    if (lower_case === "test") {
       // Create greeting feedback
       response.text = `If you see this message that means the test runs succesfully!`;
       message_catched  = true;
@@ -143,7 +151,7 @@ function handleMessage(sender_psid, received_message) {
     } 
     
     // need to condense all those if statement into a for loop
-    if (lower_case.includes("bitcoin")) {
+    if (lower_case === "bitcoin") {
       response.text = `Do you want some news about bitcoin?`;
       lookup_keyword = "bitcoin";
       message_catched = true;
@@ -181,6 +189,43 @@ function handleMessage(sender_psid, received_message) {
       message_catched = true;
     }
     
+    //testing python
+    if (lower_case.includes("testpython")) {
+      
+      najax({
+            type: "POST",
+            url: "http://127.0.0.1:5001/getScore",
+            data: { mydata: "barbie kills mansion"},
+            complete: function(retString) {
+              response.text = "returning: " + JSON.parse(retString).loss;
+              // Sends the response message
+              callSendAPI(sender_psid, response);
+            }
+        })
+      // response.text = "returning: " + "hi";
+      message_catched = true;
+    }
+    
+    //testing python
+    if (lower_case.includes("unusual score: ")) {
+      
+      var headline_title = lower_case.slice(15);
+      console.error(headline_title);
+      
+      najax({
+            type: "POST",
+            url: "http://127.0.0.1:5001/getScore",
+            data: { mydata: headline_title},
+            complete: function(retString) {
+              response.text = "returning: " + JSON.parse(retString).loss;
+              // Sends the response message
+              callSendAPI(sender_psid, response);
+            }
+        })
+      // response.text = "returning: " + "hi";
+      message_catched = true;
+    }
+    
     if (lower_case.includes("yes")) {
       
       message_catched = true;
@@ -189,10 +234,15 @@ function handleMessage(sender_psid, received_message) {
         response.text = `Please tell me a cyptocurrency to lookup first.`;
       }
       else {
+        // var io = require('socket.io')(app);
+        // var socket = io.connect('http://127.0.0.1:5000/');
+        // socket.emit("message", "something");
+        // var $ = require("jquery");
+        let today = getDate();
         newsapi.v2.everything({
           q: lookup_keyword,
-          from: '2019-04-06',
-          to: '2019-04-06',
+          from: today,
+          to: today,
           language: 'en',
           sortBy: 'popularity',
           pageSize: '100',
@@ -259,7 +309,7 @@ function handleMessage(sender_psid, received_message) {
       
     if (!message_catched) { 
       // Create catch all feedback
-      response.text = `Sorry I do not understand your commend`    
+      response.text = `Sorry I do not understand your command`    
     }
   
   }  
