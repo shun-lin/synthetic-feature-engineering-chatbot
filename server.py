@@ -28,6 +28,9 @@ import requests # The requests library is an
 import bs4 as bs # BeautifulSoup4 is a Python library 
 # for pulling data out of HTML and XML code.
 
+# this will validate whether we got a url or a title
+import validators
+
 import re
 import string
 import operator
@@ -114,9 +117,33 @@ def home():
 @app.route('/getScore', methods=['GET', 'POST'])
 def getScore():
   if request.method == 'POST':
+    data_received = request.form['mydata'].lower()
+    is_url = validators.url(data_received)
+    
+    headline = ""
+    if not is_url:
+      # if we didn't get a url we got a headline as our data
+      headline = data_received
+    else:
+      # we need to go fetch the headline from the url
+      source = requests.get(data_received)
+      soup = bs.BeautifulSoup(source.content, features='html.parser')
+      headline = " "
+      found_headline = False
+      h1_tags = soup.find_all('h1')
+      for h1_tag in h1_tags:
+        potential_text = h1_tag.find(text=True, recursive=True)
+        if len(potential_text) > 1:
+          headline = potential_text
+          found_headline = True
+      
+      if not found_headline:
+        resp = make_response()
+        resp.status = 400
+        return resp
+
     with tf.Session(graph=default_graph) as sess:
       model.saver.restore(sess, model_file)
-      headline = request.form['mydata'].lower()
 
       tokenized = tokenizer.word_tokenizer(headline)
       numerized = numerize_sequence(tokenized)
@@ -132,7 +159,16 @@ def getScore():
       feed = {model.input_num: hl_input, model.targets: hl_target, model.targets_mask: hl_target_mask}
       loss = sess.run([model.loss], feed_dict=feed)[0]
       
-      resp = make_response('{"loss": '+str(loss)+'}')
+      analysis = ''
+      
+      if loss < 7.00:
+        analysis = "The headline is not unusual (not impactful). The article may not have any affect on cryptocurrency prices."
+      elif loss < 15.00:
+        analysis = "The headline is unusual (potentially impactful). The article may have an impact on cryptocurrency prices. We recommend reading the article!"
+      else:
+        analysis = "The headline is highly unusual (either potentially very impactful or not related to cryptocurrency). If the article is related to cryptocurrency, we recommend reading the article in detail!"
+      
+      resp = make_response('{"loss": '+str(loss)+', "headline": "'+headline+'"' + ', "analysis": "'+analysis+'"' + '}')
       resp.headers['Content-Type'] = "application/json"
         
       return resp
