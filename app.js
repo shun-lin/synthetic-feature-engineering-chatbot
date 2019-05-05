@@ -1,13 +1,3 @@
-/*
- * Starter Project for Messenger Platform Quick Start Tutorial
- *
- * Remix this as the starting point for following the Messenger Platform
- * quick start tutorial.
- *
- * https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start/
- *
- */
-
 'use strict';
 
 // Imports dependencies and set up http server
@@ -16,6 +6,7 @@ const
   request = require('request'),
   express = require('express'),
   body_parser = require('body-parser'),
+  // najax to replace jQuery Ajax
   najax = require('najax'),
   app = express().use(body_parser.json()), // creates express http server
 
@@ -98,10 +89,19 @@ app.get('/webhook', (req, res) => {
 
 let lookup_keyword = "";
 
-function getDate() {
+// helper functions
+function getTodayDate() {
   let date = new Date();
   let today = date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate();
   return today;
+}
+
+function getYesterdayDate() {
+  
+  // minus one full day (24 hours) to get yesterday's date
+  let date = new Date(Date.now() - 864e5);
+  let yesterday = date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate();
+  return yesterday;
 }
 
 // Handles messages events
@@ -109,24 +109,58 @@ function handleMessage(sender_psid, received_message) {
   let response = {
     "text": ""
   }
+  
+  // helper function in handleMessage
+  function sendAnalysis(user_input) {
+    
+    najax({
+              type: "POST",
+              url: "http://127.0.0.1:5001/getScore",
+              data: { mydata: user_input},
+              success: function(retString) {
+
+                var score = parseFloat(JSON.parse(retString).loss).toFixed(2);
+                var analysis = JSON.parse(retString).analysis;
+                var headline = JSON.parse(retString).headline;
+
+                response.text = 'Headline: ' + headline;
+
+                // add score
+                response.text += '\n\n'
+                response.text += 'Unusual score: ' + score.toString() + '.';
+
+                // add analysis
+                response.text += '\n\n'
+                response.text += 'Analysis: ' + analysis;
+
+                // Sends the response message
+                callSendAPI(sender_psid, response);
+              },
+              error: function() {
+                response.text = "We can not fetch the headline from the url you give us, please double check the url or type the headline into our chatbot!"
+                // Sends the response message
+                callSendAPI(sender_psid, response);
+              }
+          })
+  }
 
   // Check if the message contains text
   if (received_message.text) {    
     
     let message_catched = false;
+    let lower_case = received_message.text.toLowerCase().trim();
     
     // test if greeting through NLP
     const greeting = firstEntity(received_message.nlp, 'greetings');
     if (greeting && greeting.confidence > 0.8) {
       // Create greeting feedback
-      response.text = `hi! Welcome to Syntehtic Feature Engineering Team's Demo Bot`;
+      response.text = 'hi! Welcome to Data-X Paradigm Team 2\'s Demo Messenger Bot.';
+      response.text += '\n\n';
+      response.text +=  'Please type \'commands\' to see a list of commands I understand!';
       message_catched  = true;
     }
     
-    let lower_case = received_message.text.toLowerCase();
-    // check if the message contains bitcoin
-    
-    if (lower_case.includes("info")) {
+    if (lower_case === "info") {
       // Create greeting feedback
       response.text = `This page is created for the demo chat bot for Data-X Paradigm Synthetic Features Engineering Team Spring 2019.`;
       message_catched  = true;
@@ -138,13 +172,17 @@ function handleMessage(sender_psid, received_message) {
       message_catched  = true;
     }
     
-    if (lower_case.includes("menu")) {
+    if (lower_case === "menu" || lower_case === "commands") {
       // Create greeting feedback
-      response.text = `You can say something like 'bitcoin' and we will fetch some Bitcoin news for you!`;
+      response.text = "Tell me a cryptocurrency like \'bitcoin\' and I will fetch today\'s news about it and rank them for you!";
+      response.text += "\n\n";
+      response.text += "Use the special command \"unusual score:\" and send us a headline or an URL of a cryptocurrency article and we will analysize the unusual score of the article for you!";
+      response.text += "\n\n";
+      response.text += "Type \'help\' and we will notify our developer to solve your problems!";
       message_catched  = true;
     }
     
-    if (lower_case.includes("help")) {
+    if (lower_case === "help") {
       // Create greeting feedback
       response.text = `Our team has been notified, we will contact you about your problem shortly!`;
       message_catched  = true;
@@ -157,33 +195,67 @@ function handleMessage(sender_psid, received_message) {
       message_catched = true;
     }
     
-    if (lower_case.includes("cryptocurrency")) {
+    if (lower_case === "cryptocurrency") {
       response.text = `Do you want some news about general cryptocurrency?`;
       lookup_keyword = "cryptocurrency";
       message_catched = true;
     }
     
-    if (lower_case.includes("blockchain")) {
+    if (lower_case === "blockchain") {
       response.text = `Do you want some news about blockchain?`;
       lookup_keyword = "blockchain";
       message_catched = true;
     }
     
-    if (lower_case.includes("ethereum")) {
+    if (lower_case === "ethereum") {
       response.text = `Do you want some news about Ethereum?`;
       lookup_keyword = "ethereum";
       message_catched = true;
     }
     
-    if (lower_case.includes("litecoin")) {
+    if (lower_case === "litecoin") {
       response.text = `Do you want some news about Litecoin?`;
       lookup_keyword = "litecoin";
       message_catched = true;
     }
     
+    if (lower_case.includes("tell me") || lower_case.includes("give me news")) {
+      
+        // need to condense all those if statement into a for loop
+      if (lower_case.includes("bitcoin")) {
+        response.text = `Do you want some news about bitcoin?`;
+        lookup_keyword = "bitcoin";
+        message_catched = true;
+      }
+
+      if (lower_case.includes("cryptocurrency")) {
+        response.text = `Do you want some news about general cryptocurrency?`;
+        lookup_keyword = "cryptocurrency";
+        message_catched = true;
+      }
+
+      if (lower_case.includes("blockchain")) {
+        response.text = `Do you want some news about blockchain?`;
+        lookup_keyword = "blockchain";
+        message_catched = true;
+      }
+
+      if (lower_case.includes("ethereum")) {
+        response.text = `Do you want some news about Ethereum?`;
+        lookup_keyword = "ethereum";
+        message_catched = true;
+      }
+
+      if (lower_case.includes("litecoin")) {
+        response.text = `Do you want some news about Litecoin?`;
+        lookup_keyword = "litecoin";
+        message_catched = true;
+      }
+    }
+    
     // need to condense all those if statement into a for loop ENDS
     
-    if (lower_case.includes("no")) {
+    if (lower_case === "no") {
       response.text = `Okay, let me know what other cyptocurrency do you want news for?`;
       lookup_keyword = "";
       message_catched = true;
@@ -206,27 +278,15 @@ function handleMessage(sender_psid, received_message) {
       message_catched = true;
     }
     
-    //testing python
     if (lower_case.includes("unusual score: ")) {
       
-      var headline_title = lower_case.slice(15);
-      console.error(headline_title);
+      var received_data = lower_case.slice(15).trim();
       
-      najax({
-            type: "POST",
-            url: "http://127.0.0.1:5001/getScore",
-            data: { mydata: headline_title},
-            complete: function(retString) {
-              response.text = "returning: " + JSON.parse(retString).loss;
-              // Sends the response message
-              callSendAPI(sender_psid, response);
-            }
-        })
-      // response.text = "returning: " + "hi";
+      sendAnalysis(received_data);
       message_catched = true;
     }
     
-    if (lower_case.includes("yes")) {
+    if (lower_case === "yes") {
       
       message_catched = true;
       
@@ -234,23 +294,17 @@ function handleMessage(sender_psid, received_message) {
         response.text = `Please tell me a cyptocurrency to lookup first.`;
       }
       else {
-        // var io = require('socket.io')(app);
-        // var socket = io.connect('http://127.0.0.1:5000/');
-        // socket.emit("message", "something");
-        // var $ = require("jquery");
-        let today = getDate();
+        let today = getTodayDate();
+        let yesterday = getYesterdayDate();
         newsapi.v2.everything({
           q: lookup_keyword,
-          from: today,
+          from: yesterday,
           to: today,
           language: 'en',
           sortBy: 'popularity',
           pageSize: '100',
-        }).then(response => {
+        }).then(newsapi_response => {
           message_catched = true;
-          let bitcoin_response = {
-            "text": response.articles[0].title
-          }
 
           let query_response = {
             "attachment": {
@@ -271,8 +325,10 @@ function handleMessage(sender_psid, received_message) {
           let lst_element;
 
           var i;
-          for (i = 0; i < 4; i+=1) {
-            bitcoin_article = response.articles[i];
+          var articles_list = newsapi_response.articles;
+          var num_articles_display = Math.min(articles_list.length, 4)
+          for (i = 0; i < num_articles_display; i+=1) {
+            bitcoin_article = articles_list[i];
             title = bitcoin_article.title;
             image_url = bitcoin_article.urlToImage;
             subtitle = bitcoin_article.description;
@@ -293,14 +349,26 @@ function handleMessage(sender_psid, received_message) {
 
 
           }
-          console.log(query_response.attachment.payload.elements);
-          callSendAPI(sender_psid, query_response);
-          /*
-            {
-              status: "ok",
-              articles: [...]
-            }
-          */
+          
+          if (articles_list.length == 0) {
+            response.text = "Our source, newsApi.org, returns no " + lookup_keyword + " news for today. Please use our 'unusual score' functionality to get analysis on any cryptocurrency related article!";
+            callSendAPI(sender_psid, response);
+          }
+          else {
+            callSendAPI(sender_psid, query_response);
+          }
+          
+          var j;
+          var article_ele;
+          var article_title;
+          for (j = 0; j < query_response.attachment.payload.elements.length; j += 1) {
+            article_ele = query_response.attachment.payload.elements[j];
+            article_title = article_ele.title;
+            sendAnalysis(article_title);
+            
+          }
+          
+          
         });
       }
 

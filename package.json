@@ -1,7 +1,7 @@
 {
-  "name": "messenger-quick-start",
+  "name": "cryptonews-chatbot",
   "version": "1.0.0",
-  "description": "An example webhook for Facebook Messenger quick start tutorial.",
+  "description": "The webhook for Data-X Parigm Team Spring 2019 messenger chatbot.",
   "main": "app.js",
   "scripts": {
     "start": "node app.js | bash ./run.sh"
@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/fbsamples/messenger-platform-samples.git"
   },
-  "author": "Facebook",
+  "author": "Shun Lin and Team",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.0",
@@ -20,6 +20,6 @@
     "najax": "^1.0.4"
   },
   "engines": {
-    "node": "~4.1.2"
+    "node": "10"
   }
 }
